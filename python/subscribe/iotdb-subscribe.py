@@ -10,7 +10,7 @@ from remotivelabs.broker.sync import (
     SignalIdentifier,
 )
 from iotdb.Session import Session
-import datetime
+
 
 # Simple Apache IoTDB session configuration
 ip = "127.0.0.1"
@@ -34,11 +34,16 @@ def run_subscribe_sample(url: str, signals: list[str], secret: Optional[str] = N
 
     def on_signals(signals_in_frame: SignalsInFrame):
         for signal in signals_in_frame:
+            # Convert RemotiveLabs timestamp in microseconds to milliseconds
             ts_ = int(signal.timestamp_us()/1000)
+            # Quote the VSS leaf node name
             vss_name_ = signal.name()
+            if vss_name_ == 'Vehicle.Chassis.Accelerator.PedalPosition' or vss_name_ == 'Vehicle.Powertrain.Transmission.CurrentGear' or vss_name_ == 'Vehicle.Powertrain.TractionBattery.NominalVoltage' or vss_name_ == 'Vehicle.Chassis.SteeringWheel.Angle':
+                vss_value_ = [str(int(signal.value()))]
+            else:
+                vss_value_ = [str(signal.value())]
+
             iotdb_vss_name_ = ['`{}`'.format(vss_name_)]
-            vss_value_ = [str(signal.value())]
-            print(f'TS={ts_} iotdb_name={iotdb_vss_name_} name={vss_name_} value={vss_value_}') 
             # IoTDB does data type inference for basic types based on the timeseries schema
             session.insert_str_record(device_id_, ts_, iotdb_vss_name_, vss_value_)
             print(signal.to_json())
